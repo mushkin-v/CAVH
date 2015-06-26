@@ -1,0 +1,83 @@
+#!/usr/bin/env php
+<?php
+
+/// АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ ВИРТУАЛЬНОГО ХОСТА ДЛЯ APACHE
+/// https://github.com/mushkin-v
+
+///для localhost не забыть добавить сайт в sudo nano /etc/hosts
+
+// папки с доступными и разрешенными хостами
+$apacheSA = '/etc/apache2/sites-available/';
+$apacheSE = '/etc/apache2/sites-enabled/';
+
+$options = getopt('', ['domain:']);
+
+// домен, например site.ru
+$domain = $options['domain'];
+
+if (!$domain) {
+    echo 'wrong domain!';
+    exit;
+}
+
+// папка которая будет содержать файлы сайта, например site.ua
+$path = $domain;
+
+// папка где у меня лежат подпапки сайтов
+$pathPrefix = '/var/www/';
+
+// порт 80
+$port = '*:80';
+
+// сервер админ я ставлю один и тот же на всех виртуальных хостах
+$serverAdmin = 'mushkin.v@gmail.com';
+
+// создаем папку для логов, а то апачь может не запустится
+if (!is_dir($pathPrefix . $path)) {
+    mkdir($pathPrefix . $path, 0777, true);
+    $f = fopen($pathPrefix . $path . '/' .'index.php', 'w');
+    fwrite($f, '<?php' .PHP_EOL . 'echo \'Hello World!\';');
+    fclose($f);
+    chmod($pathPrefix . $path, 0777);
+    chmod($pathPrefix . $path . '/' .'index.php', 0777);
+} else {
+    echo 'This dir ' . $pathPrefix . $path . '/logs/' . ' already exists!' . PHP_EOL;
+    exit;
+}
+
+// шаблон виртуального хоста apache
+$out =
+    '<VirtualHost ' . $port . '>
+    ServerName ' . $domain . '
+    ServerAlias www.' . $domain . '
+    ServerAdmin ' . $serverAdmin . '
+    DocumentRoot ' . $pathPrefix . $path . '/
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>';
+
+echo  'Creating virtual host ' . $domain . '... Done!' . PHP_EOL;
+
+// записываем файл
+if (!is_file('/etc/apache2/sites-available/' . $path . '.conf')) {
+    $f = fopen('/etc/apache2/sites-available/' . $path . '.conf', 'w');
+    fwrite($f, $out);
+    fclose($f);
+} else {
+    echo 'Config file for domain ' . $domain . ' already exists!';
+    exit;
+}
+
+// созадем симлинк
+shell_exec('ln -s ' . $apacheSA . $path . '.conf' . ' ' . $apacheSE . $path . '.conf');
+
+$f = fopen('/etc/hosts', 'a');
+fwrite($f, PHP_EOL . '127.0.0.77 ' . $domain);
+fclose($f);
+
+
+// перезапускаем apache
+echo 'sudo service apache2 restart' . PHP_EOL;
+shell_exec('sudo service apache2 restart');
+
+echo 'Restaring apache2... Done!' . PHP_EOL;
