@@ -4,8 +4,6 @@
 /// АВТОМАТИЧЕСКОЕ ДОБАВЛЕНИЕ ВИРТУАЛЬНОГО ХОСТА ДЛЯ APACHE
 /// https://github.com/mushkin-v
 
-///для localhost не забыть добавить сайт в sudo nano /etc/hosts
-
 // папки с доступными и разрешенными хостами
 $apacheSA = '/etc/apache2/sites-available/';
 $apacheSE = '/etc/apache2/sites-enabled/';
